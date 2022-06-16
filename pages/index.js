@@ -1,39 +1,34 @@
-import {useEffect, useState} from 'react';
-import NavBar from '../components/NavBar';
+import Link from 'next/link';
 import Title from '../components/Title';
+import { useRouter } from 'next/router';
 
-const API_KEY = "dcf0ccbc6a9d43ab69a02668a8e8ad93";
+// 데이터가 필요한 컴포넌트에 props를 주면 해당 컴포넌트에서 데이터 활용 가능
+// 이게 가능한 이유? _app.js에서 페이지들이 pageProps를 받고 있기 때문 
+export default function Home({results}) { 
+    const router = useRouter();
 
-export default function Home() {    
-    const [movies, setMovies] = useState([]);
-
-    useEffect(() => {
-        (async () => {
-          const {results} = await (
-            await fetch(
-              `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}`
-            )
-          ).json();                  
-
-          setMovies(results);
-        })();        
-      }, []);
-
+    const onClick = (movie) => {
+        router.push({
+            pathname : `/movies/${movie.title}/${movie.id}`,            
+        });
+    }
+    
     return (
         <div className="container">    
-            <Title title={"Home"}/>                  
-            {
-                !movies && <h4>로딩 중...</h4>
-            }
+            <Title title={"Home"}/>                              
             <h1>
                 {
-                    movies?.map(movie => (
-                        <div className="movie" key={movie.id}>
+                    results?.map(movie => (
+                        <div className="movie" key={movie.id} onClick={() => onClick(movie)}>
                             <img src={`https://image.tmdb.org/t/p/w500/${movie.poster_path}`} />
                             <h4>
-                                {movie.original_title}
+                                <Link href={`/movies/${movie.original_title}/${movie.id}`}>
+                                    <a>
+                                        {movie.original_title}
+                                    </a>
+                                </Link>
                             </h4>
-                        </div>
+                        </div>                                                    
                     ))
                 }
             </h1>
@@ -43,6 +38,9 @@ export default function Home() {
                     grid-template-columns: 1fr 1fr;
                     padding: 20px;
                     gap: 20px;
+                }
+                .movie {
+                    cursor: pointer;
                 }
                 .movie img {
                     max-width: 100%;
@@ -60,4 +58,18 @@ export default function Home() {
             `}</style>
         </div>  
     );
+}
+
+export async function getServerSideProps() {
+    // api 요청 후 데이터 가져온 다음 완전히 가져올 때까지 기다렸다가 json타입으로 변환
+    // 완전히 변환될 때까지 기다렸다가 결과값 저장 
+    const {results} = await (await fetch('http://localhost:3000/api/movies')).json(); 
+
+    // props라는 키를 가진 response 데이터를 반환 
+    // props에는 원하는 데이터를 다 넣을 수 있다. 
+    return {
+        props : {
+            results,
+        }
+    }
 }
